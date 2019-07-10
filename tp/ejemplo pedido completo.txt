@@ -1,0 +1,25 @@
+{
+"comidas":{
+	"id":"13",
+	"cantidad":"3"
+},
+"bebidas":{
+	"id":"10",
+	"cantidad":"1"
+},
+"postres":{
+	"id":"13",
+	"cantidad":"1"
+},
+"tragos":{
+	"id":"10",
+	"cantidad":"1"
+},
+"cliente":{
+	"nombre":"Jose Martinez"
+},
+"mesa":{
+	"asientos":"6",
+	"ubicacion":"exterior"
+}
+}
