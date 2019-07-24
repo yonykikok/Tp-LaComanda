@@ -25,7 +25,15 @@ class Comida extends Model
     }
     return $retorno;
   }
-
+  public static function ComidaVendidaMasMas($id,$cantidadVendida)
+  {
+    $comida=self::where('id',$id)->first();
+      if(!is_null($comida))
+    {
+      $comida->cantidadVendida=$comida->cantidadVendida+$cantidadVendida;
+      $comida->save();
+    }
+  }
   public static function ArmarPedido($listado,$numeroDeOrden)
   {
     $cantidades=array();
@@ -48,6 +56,7 @@ class Comida extends Model
             $comida->idComida=$pedidos[$i];
             $comida->orden=$numeroDeOrden;  
             $comida->estado='pendiente';
+            self::ComidaVendidaMasMas($comida->idComida,$comida->cantidad);
             $comida->save();
           }
           else
@@ -65,7 +74,8 @@ class Comida extends Model
           $comida->idComida=$listado['id'];
           $comida->orden=$numeroDeOrden;  
           $comida->estado='pendiente';
-          $comida->save();
+            self::ComidaVendidaMasMas($comida->idComida,$comida->cantidad);
+            $comida->save();
         }
         else
         {
@@ -80,8 +90,39 @@ class Comida extends Model
         $comida->idComida=1000;
         $comida->orden=$numeroDeOrden;  
         $comida->estado='pendiente';
-        $comida->save();
+            self::ComidaVendidaMasMas($comida->idComida,$comida->cantidad);
+            $comida->save();
       }
   }
-  
+  public static function DescontarVendidas($orden)
+  {
+    $pedido=PedidoComida::where('orden',$orden)->first();
+    if(!is_null($pedido))
+    {
+      $menu=self::where('id',$pedido->idComida)->first();
+      if(!is_null($menu))
+      {
+        $menu->cantidadVendida=$menu->cantidadVendida-$pedido->cantidad;
+        $menu->save();
+      }else
+      {
+        echo 'no se encontro la comida<br>';
+      }
+    }
+    else
+      {
+        echo 'no se encontro el pedido de comidas<br>';
+      }
+  }
+  public static function LimpiarVendidos()
+  {
+    $menus=self::where('id','>','0')->get();
+    if(!is_null($menus) && count($menus)>=1)
+    {
+      foreach ($menus as $key => $menu) {
+        $menu->cantidadVendida=0;
+        $menu->save();
+      }
+    }
+  }
 }

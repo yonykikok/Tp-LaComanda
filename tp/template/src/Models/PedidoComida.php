@@ -7,7 +7,7 @@ use Illuminate\Database\Capsule\Manager as Capsule;
 use Models\Comida;
 class PedidoComida extends Model
 {
-  protected $table = "pedidosComida";
+  protected $table = "pedidoscomida";
   public $timestamps = false;
 
   public static function LastInsertId()
@@ -24,17 +24,32 @@ class PedidoComida extends Model
     } 
     return $retorno;
   }
-  public static function CalcularCostoDelPedido($orden)
+  public static function CalcularCostoDelPedido($orden,$bool)
   {
     $sumaAPagar=0;
     $pedidos= PedidoComida::where('orden',$orden)->get();
-    if(count($pedidos)>0)
+    if($bool)
     {
-      foreach ($pedidos as $indice => $pedido) 
+      if(count($pedidos)>0)
       {
-        $comida=Comida::where('id',$pedido->idComida)->first();
-        $sumaAPagar=$sumaAPagar+$comida->precio;
-        echo $comida->nombre.' --- $'.$comida->precio.'<br>';
+        foreach ($pedidos as $indice => $pedido) 
+        {
+          $comida=Comida::where('id',$pedido->idComida)->first();
+          $precioDelPedido=$comida->precio*$pedido->cantidad;
+          $sumaAPagar=$sumaAPagar+$precioDelPedido;  
+          echo $pedido->cantidad.' '.$comida->nombre.' --- $'.$precioDelPedido.'<br>';
+        }
+      }
+    }else
+    {
+      if(count($pedidos)>0)
+      {
+        foreach ($pedidos as $indice => $pedido) //sin imprimir importe
+        {
+          $comida=Comida::where('id',$pedido->idComida)->first();
+          $precioDelPedido=$comida->precio*$pedido->cantidad;
+          $sumaAPagar=$sumaAPagar+$precioDelPedido;  
+        }
       }
     }
     return $sumaAPagar;
@@ -53,4 +68,27 @@ class PedidoComida extends Model
       }
     }
   }
+
+  public static function CancelarPedido($orden)
+  {
+    $pedidos=self::where('orden',$orden)->get();
+    if(count($pedidos)>=1)
+    {
+      foreach ($pedidos as $key => $pedido) {
+        $pedido->estado='cancelado';
+        $pedido->save();
+      }
+    }
+  }
+  public static function BorrarTodos()
+  {
+    $pedidos=self::where('id','>','0')->get();
+    if(!is_null($pedidos) && count($pedidos)>=1)
+    {
+      foreach ($pedidos as $key => $pedido) {
+        $pedido->delete();
+      }
+    }
+  }
+
 }

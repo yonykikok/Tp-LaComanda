@@ -25,7 +25,15 @@ class Bebida extends Model
     }
     return $retorno;
   }
- 
+ public static function BebidaVendidaMasMas($id,$cantidadVendida)
+ {
+   $bebida=self::where('id',$id)->first();
+     if(!is_null($bebida))
+   {
+     $bebida->cantidadVendida=$bebida->cantidadVendida+$cantidadVendida;
+     $bebida->save();
+   }
+ }
   public static function ArmarPedido($listado,$numeroDeOrden)
   {
     $cantidades=array();
@@ -46,6 +54,7 @@ class Bebida extends Model
           $bebida->idBebida=$pedidos[$i];
           $bebida->orden=$numeroDeOrden;  
           $bebida->estado='pendiente';
+          self::BebidaVendidaMasMas($bebida->idBebida,$bebida->cantidad);
           $bebida->save();
         }
         else
@@ -63,6 +72,7 @@ class Bebida extends Model
           $bebida->idBebida=$listado['id'];
           $bebida->orden=$numeroDeOrden;  
           $bebida->estado='pendiente';
+          self::BebidaVendidaMasMas($bebida->idBebida,$bebida->cantidad);
           $bebida->save();
         }
         else
@@ -78,7 +88,39 @@ class Bebida extends Model
       $bebida->idBebida=1000;
       $bebida->orden=$numeroDeOrden;  
       $bebida->estado='pendiente';
+      self::BebidaVendidaMasMas($bebida->idBebida,$bebida->cantidad);
       $bebida->save();
+    }
+  }
+  public static function DescontarVendidas($orden)
+  {
+    $pedido=PedidoBebida::where('orden',$orden)->first();
+    if(!is_null($pedido))
+    {
+      $menu=self::where('id',$pedido->idBebida)->first();
+      if(!is_null($menu))
+      {
+        $menu->cantidadVendida=$menu->cantidadVendida-$pedido->cantidad;
+      $menu->save();
+      }else
+      {
+        echo 'no se encontro la bebida<br>';
+      }
+    }
+    else
+      {
+        echo 'no se encontro el pedido de bebidas<br>';
+      }
+  }
+  public static function LimpiarVendidos()
+  {
+    $menus=self::where('id','>','0')->get();
+    if(!is_null($menus) && count($menus)>=1)
+    {
+      foreach ($menus as $key => $menu) {
+        $menu->cantidadVendida=0;
+        $menu->save();
+      }
     }
   }
 }

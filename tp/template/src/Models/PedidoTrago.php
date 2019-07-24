@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Capsule\Manager as Capsule;
 class PedidoTrago extends Model
 {
-  protected $table = "pedidosTrago";
+  protected $table = "pedidostrago";
   public $timestamps = false;
 
   public static function LastInsertId()
@@ -23,17 +23,32 @@ class PedidoTrago extends Model
     } 
     return $retorno;
   }
-  public static function CalcularCostoDelPedido($orden)
+  public static function CalcularCostoDelPedido($orden,$bool)
   {
     $sumaAPagar=0;
     $pedidos= PedidoTrago::where('orden',$orden)->get();
-    if(count($pedidos)>0)
+    if($bool)
     {
-      foreach ($pedidos as $indice => $pedido) 
+      if(count($pedidos)>0)
       {
-        $trago=Trago::where('id',$pedido->idTrago)->first();
-        $sumaAPagar=$sumaAPagar+$trago->precio;
-        echo $trago->nombre.' --- $'.$trago->precio.'<br>';
+        foreach ($pedidos as $indice => $pedido) 
+        {
+          $trago=Trago::where('id',$pedido->idTrago)->first();
+          $precioDelPedido=$trago->precio*$pedido->cantidad;
+          $sumaAPagar=$sumaAPagar+$precioDelPedido;  
+          echo $pedido->cantidad.' '.$trago->nombre.' --- $'.$precioDelPedido.'<br>';          
+        }
+      }
+    }else
+    {
+      if(count($pedidos)>0)
+      {
+        foreach ($pedidos as $indice => $pedido) 
+        {
+          $trago=Trago::where('id',$pedido->idTrago)->first();
+          $precioDelPedido=$trago->precio*$pedido->cantidad;
+          $sumaAPagar=$sumaAPagar+$precioDelPedido;  
+        }
       }
     }
     return $sumaAPagar;
@@ -49,6 +64,27 @@ class PedidoTrago extends Model
           $pedido->estado=$estadoNuevo;
           $pedido->save();
         }
+      }
+    }
+  }
+  public static function CancelarPedido($orden)
+  {
+    $pedidos=self::where('orden',$orden)->get();
+    if(count($pedidos)>=1)
+    {
+      foreach ($pedidos as $key => $pedido) {
+        $pedido->estado='cancelado';
+        $pedido->save();
+      }
+    }
+  }
+  public static function BorrarTodos()
+  {
+    $pedidos=self::where('id','>','0')->get();
+    if(!is_null($pedidos) && count($pedidos)>=1)
+    {
+      foreach ($pedidos as $key => $pedido) {
+        $pedido->delete();
       }
     }
   }

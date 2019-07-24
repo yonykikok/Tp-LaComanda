@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Capsule\Manager as Capsule;
 class Mozo extends Model
 {
-  protected $table = "pedidosMozo";
+  protected $table = "pedidosmozo";
   public $timestamps = false;
 
   public static function LastInsertId()

@@ -1,6 +1,7 @@
 <?php
 
 namespace Controllers;
+use Models\RegistroLogeo;
 use Helpers\JWTAuth;
 use Models\User;
 
@@ -30,6 +31,12 @@ class AuthController
       "nombre" => $user->nombre,
       "role" => $user->role
     ];
+  
+    $registro=new RegistroLogeo();
+    $registro->fecha=date("d-m-Y");
+    $registro->hora= date("h-i-sa");
+    $registro->idUsuario=$user->id;
+    $registro->save();
     return  JWTAuth::CreateToken($obj);
   }
 

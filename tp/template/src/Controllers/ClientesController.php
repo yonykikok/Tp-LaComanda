@@ -79,27 +79,44 @@ class ClientesController //implements IController
   }
   public static function calcularDemora($request, $response, $args){
     $informacion=$request->getParsedBody();
-    $numeroDeOrden=$informacion['orden'];
-    $demora=0;
-    $estadoComida=PedidoComida::where('orden',$informacion['orden'])->get('estado')->first();
-    $estadoPostre=PedidoPostre::where('orden',$informacion['orden'])->get('estado')->first();
-    $estadoTrago=PedidoTrago::where('orden',$informacion['orden'])->get('estado')->first();
-    $estadoBebida=PedidoBebida::where('orden',$informacion['orden'])->get('estado')->first();
-    //agrego un tiempo que simule la demora de la preparacion 
-    if($estadoComida['estado']=='entregado'&&$estadoPostre['estado']=='entregado'&&
-    $estadoTrago['estado']=='entregado'&&$estadoBebida['estado']=='entregado')
+    if(isset($informacion['orden'])&&isset($informacion['mesa']))
     {
-      echo "<h3>Entregado</h3>";
+      $pedidoMozo=PedidoMozo::where('orden',$informacion['orden'])->where('mesa',$informacion['mesa'])->first();
+      $mesaPedida=PedidoMozo::where('mesa',$informacion['mesa'])->first();
+      if(!is_null($pedidoMozo) && !is_null($mesaPedida))
+      {        
+        $numeroDeOrden=$informacion['orden'];
+        $demora=0;
+        $estadoComida=PedidoComida::where('orden',$informacion['orden'])->get('estado')->first();
+        $estadoPostre=PedidoPostre::where('orden',$informacion['orden'])->get('estado')->first();
+        $estadoTrago=PedidoTrago::where('orden',$informacion['orden'])->get('estado')->first();
+        $estadoBebida=PedidoBebida::where('orden',$informacion['orden'])->get('estado')->first();
+        //agrego un tiempo que simule la demora de la preparacion 
+        if($estadoComida['estado']=='entregado'&&$estadoPostre['estado']=='entregado'&&
+        $estadoTrago['estado']=='entregado'&&$estadoBebida['estado']=='entregado')
+        {
+          echo "<h3>Entregado</h3>";
+        }
+        else
+        {
+          //var_dump($informacion['orden']);
+          $demoraComida=self::calcularDemoraPorPedido($estadoComida['estado'],20,10,1);
+          $demoraPostre=self::calcularDemoraPorPedido($estadoPostre['estado'],10,5,1);
+          $demoraTrago=self::calcularDemoraPorPedido($estadoTrago['estado'],8,2,1);
+          $demoraBebida=self::calcularDemoraPorPedido($estadoBebida['estado'],5,2,1);
+          $demora=$demoraComida+$demoraBebida+$demoraPostre+$demoraTrago;
+          
+          echo '<h3>Demora estimada: '.$demora.' minutos</h3>';
+        }
+      }
+      else
+      {
+        echo 'No se encontro pedido que coincida con mesa y orden';
+      }
     }
     else
     {
-      $demoraComida=self::calcularDemoraPorPedido($estadoComida['estado'],20,10,1);
-      $demoraPostre=self::calcularDemoraPorPedido($estadoPostre['estado'],10,5,1);
-      $demoraTrago=self::calcularDemoraPorPedido($estadoTrago['estado'],8,2,1);
-      $demoraBebida=self::calcularDemoraPorPedido($estadoBebida['estado'],5,2,1);
-      $demora=$demoraComida+$demoraBebida+$demoraPostre+$demoraTrago;
-      
-      echo '<h3>Demora estimada: '.$demora.' minutos</h3>';
+      echo "ingrese orden y mesa";
     }
   }
   public static function calcularDemoraPorPedido($estado,$demoraMayor,$demoraIntermedia,$demoraMinima)
@@ -198,6 +215,7 @@ class ClientesController //implements IController
          $encuesta->puntoscocinero=$datosDeLaEncuesta['puntosCocinero'];
          $encuesta->puntosrestaurante= $datosDeLaEncuesta['puntosRestaurante'];
          $encuesta->experiencia=$datosDeLaEncuesta['experiencia'];
+         $encuesta->puntuacionTotal=$encuesta->puntosmesa+$encuesta->puntosmozo+$encuesta->puntoscocinero+$encuesta->puntosrestaurante;
          if(is_null(Encuesta::VerificarExistencia($encuesta)))
          {
            $encuesta->save();

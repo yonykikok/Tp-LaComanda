@@ -24,6 +24,15 @@ class Postre extends Model
     }
     return $retorno;
   }
+  public static function PostreVendidaMasMas($id,$cantidadVendida)
+ {
+   $postre=self::where('id',$id)->first();
+     if(!is_null($postre))
+   {
+     $postre->cantidadVendida=$postre->cantidadVendida+$cantidadVendida;
+     $postre->save();
+   }
+ }
   public static function ArmarPedido($listado,$numeroDeOrden)
   {
     $cantidades=array();
@@ -44,6 +53,7 @@ class Postre extends Model
             $postre->idPostre=$pedidos[$i];
             $postre->orden=$numeroDeOrden;  
             $postre->estado='pendiente';
+            self::PostreVendidaMasMas($postre->idPostre,$postre->cantidad);
             $postre->save();
           }
           else{
@@ -59,6 +69,7 @@ class Postre extends Model
             $postre->idPostre=$listado['id'];
             $postre->orden=$numeroDeOrden;  
             $postre->estado='pendiente';
+            self::PostreVendidaMasMas($postre->idPostre,$postre->cantidad);
             $postre->save();
           }
           else{
@@ -73,7 +84,40 @@ class Postre extends Model
       $postre->idPostre=1000;
       $postre->orden=$numeroDeOrden;  
       $postre->estado='pendiente';
-      $postre->save();
+            self::PostreVendidaMasMas($postre->idPostre,$postre->cantidad);
+            $postre->save();
     }
 }
+public static function DescontarVendidas($orden)
+{
+  $pedido=PedidoPostre::where('orden',$orden)->first();
+  if(!is_null($pedido))
+  {
+    $menu=self::where('id',$pedido->idPostre)->first();
+    if(!is_null($menu))
+    {
+      $menu->cantidadVendida=$menu->cantidadVendida-$pedido->cantidad;
+      $menu->save();
+    }
+    else
+    {
+      echo 'no se encontro el postre<br>';
+    }
+  }
+  else
+  {
+    echo 'no se encontro el pedido en postre<br>';
+  }
+}
+public static function LimpiarVendidos()
+  {
+    $menus=self::where('id','>','0')->get();
+    if(!is_null($menus) && count($menus)>=1)
+    {
+      foreach ($menus as $key => $menu) {
+        $menu->cantidadVendida=0;
+        $menu->save();
+      }
+    }
+  }
 }

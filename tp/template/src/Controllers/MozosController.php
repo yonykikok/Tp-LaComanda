@@ -105,6 +105,7 @@ class MozosController //implements IController
             $pedidoMozo->orden=$numeroDeOrden;
             $pedidoMozo->mesa=$mesa->mesa;
             $pedidoMozo->estado='en preparacion';
+            $pedidoMozo->facturacion=self::CalcularTotalAPagarPorElPedido($numeroDeOrden,false);
             $pedidoMozo->save();
 
             $cliente=new Cliente();
@@ -113,7 +114,7 @@ class MozosController //implements IController
             $cliente->mesa=$mesa->mesa;
             $cliente->save();
             Mesa::cantidadDeUsosMasMas($mesa['mesa']);
-           // Mesa::cambiarEstadoMesa($mesa['mesa'],'esperando pedido');    
+            Mesa::cambiarEstadoMesa($mesa['mesa'],'esperando pedido');    
         }  
            
       }
@@ -124,6 +125,47 @@ class MozosController //implements IController
     }
     else{
       echo "<br>complete la orden para seguir<br>";
+    }
+  }
+  public static function CancelarPedido($request,$response,$args)
+  {
+    $informacion=$request->getParsedBody();
+    if(isset($informacion["mesa"])&& isset($informacion["orden"]))
+    {
+      $pedido=PedidoMozo::where('mesa',$informacion['mesa'])->where('orden',$informacion['orden'])->first();
+      $mesa=Mesa::where('mesa',$informacion["mesa"])->first();
+      if(!is_null($pedido) && !is_null($mesa))
+      {
+        if($mesa->estado == 'esperando pedido')
+        {
+          $pedido->estado='cancelado';
+          $mesa->estado='cancelado';
+          
+          PedidoComida::CancelarPedido($pedido->orden);
+          PedidoPostre::CancelarPedido($pedido->orden);
+          PedidoBebida::CancelarPedido($pedido->orden);
+          PedidoTrago::CancelarPedido($pedido->orden);
+          
+          Comida::DescontarVendidas($pedido->orden);
+          Trago::DescontarVendidas($pedido->orden);
+          Bebida::DescontarVendidas($pedido->orden);
+          Postre::DescontarVendidas($pedido->orden);
+          $pedido->save();
+          $mesa->save();
+          echo 'pedido Cancelado';
+        }
+        else{
+          echo 'solo se puede cancelar el pedido si aun no fue entregado';
+        }
+      }
+      else
+      {
+        echo 'no se encontro el pedido que coincida con mesa y orden';
+      }
+    }
+    else
+    {
+      echo "debe indicar mesa y orden a cancelar.";
     }
   }
   public static function ActualizarEstadoPedido($orden)
@@ -146,47 +188,61 @@ class MozosController //implements IController
   public static function CobrarPedido($request,$response,$args)
   {
     $data=$request->getParsedBody();
-    if(isset($data['mesa']))
+    if(isset($data['mesa'])&&isset($data['orden']))//si ingreso mesa y orden
     {
-      $clienteACobrar=Cliente::where('mesa',$data['mesa'])->first();
-      $mesa=Mesa::where('mesa',$data['mesa'])->first();
-      if(!is_null($clienteACobrar) && count($clienteACobrar)>0 && !is_null($mesa) && count($mesa)>0)
+      $pedido=PedidoMozo::where('orden',$data['orden'])->where('mesa',$data['mesa'])->first();//buscamos el pedido
+      if(!is_null($pedido) && count($pedido)>0)
       {
-        self::CalcularTotalAPagarPorElPedido($clienteACobrar->orden);  
-        if($mesa->estado=='comiendo')
+        $clienteACobrar=Cliente::where('mesa',$data['mesa'])->first();//buscamos al cliente de esa mesa
+        $mesa=Mesa::where('mesa',$data['mesa'])->first();//traemos la mesa para cambiar el estado
+        if(!is_null($clienteACobrar) && count($clienteACobrar)>0 && !is_null($mesa) && count($mesa)>0)
         {
-          Mesa::cambiarEstadoMesa($clienteACobrar->mesa,'cliente pagando');      
-        }else{
-          if($mesa->estado!='cliente pagando')
+          self::CalcularTotalAPagarPorElPedido($data['orden'],true);  
+          if($mesa->estado=='comiendo' && $pedido->estado != 'cancelado')
           {
-            return $response->withJson("La mesa aun no recibio su pedido.<br>", 401);      
-          } 
+            Mesa::cambiarEstadoMesa($clienteACobrar->mesa,'cliente pagando');      
+          }
           else
           {
-            return $response->withJson("Ya se le cobro a esa mesa.<br>", 401);        
+            if($mesa->estado!='cliente pagando')
+            {
+              return $response->withJson("La mesa aun no recibio su pedido.<br>", 401);      
+            } 
+            else
+            {
+              return $response->withJson("Ya se le cobro a esa mesa.<br>", 401);        
+            }
           }
         }
+        else
+        {
+          return $response->withJson("No se encontro al cliente de esa mesa<br>", 401);        
+        }
       }
-      else{
-        return $response->withJson("No se encontro al cliente de esa mesa<br>", 401);        
+      else
+      {
+        return $response->withJson("No se encontro el pedido<br>", 401);        
       }
+   
     }
     else
     {
-      return $response->withJson("Ingrese la mesa que quiere cerrar<br>", 401);
+      return $response->withJson("Ingrese la mesa y orden a la cual cobrar<br>", 401);
     }
   }
-
-  public static function CalcularTotalAPagarPorElPedido($orden)
+  public static function CalcularTotalAPagarPorElPedido($orden,$bool)
   {     
-    $totalComidas=PedidoComida::CalcularCostoDelPedido($orden);
-    $totalBebidas=PedidoBebida::CalcularCostoDelPedido($orden);
-    $totalPostres=PedidoPostre::CalcularCostoDelPedido($orden);
-    $totalTragos=PedidoTrago::CalcularCostoDelPedido($orden);
+    $totalComidas=PedidoComida::CalcularCostoDelPedido($orden,$bool);
+    $totalBebidas=PedidoBebida::CalcularCostoDelPedido($orden,$bool);
+    $totalPostres=PedidoPostre::CalcularCostoDelPedido($orden,$bool);
+    $totalTragos=PedidoTrago::CalcularCostoDelPedido($orden,$bool);
     $totalAPagar=$totalComidas+$totalBebidas+$totalPostres+$totalTragos;
     $propinaDelMoso=$totalAPagar*0.10;
-    echo 'Costo servicio del mozo(10%) --- $'.$propinaDelMoso.'<br>';
-    echo '<br>TOTAL: $'.$totalAPagar.'<br>';
+    if($bool)
+    {      
+      echo 'Costo servicio del mozo(10%) --- $'.$propinaDelMoso.'<br>';
+      echo '<br>TOTAL: $'.$totalAPagar.'<br>';
+    }
     return $totalAPagar;
   }
   public static function ServirPedido($request,$response,$args)
@@ -531,6 +587,37 @@ class MozosController //implements IController
     $ordenCompleta['postres']['cantidad']>0)
     {
       $retorno=true;
+    }
+  }
+
+  public static function ObtenerPedidoDelMozoExistente($request,$response,$args)
+  {
+    $data=$request->getParsedBody();
+    $retorno=null;
+    if(!is_null($data['orden'])&& !is_null($data['mesa']))
+    {
+     $retorno= PedidoMozo::where('orden',$data['orden'])->where('mesa',$data['mesa'])->first();
+      if(!is_null($retorno))
+      {
+        return $retorno;
+      }
+      else
+      {
+        echo 'No se encontro ningun pedido con esa mesa y esa orden';
+      }
+    }
+    else{
+      echo 'Indique Mesa y Orden a Modificar <br>';
+    }
+
+    return $retorno;
+  }
+  public static function CambiarPedidoComida($request,$response,$args)
+  {
+    $pedidoMozo=self::ObtenerPedidoDelMozoExistente($request,$response,$args);
+    if(!is_null($pedidoMozo))    
+    {
+      echo 'si';
     }
   }
 }

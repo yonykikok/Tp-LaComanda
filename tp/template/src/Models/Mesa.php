@@ -60,4 +60,16 @@ class Mesa extends Model
       $miMesa->save();
     }    
   }
+  public static function LimpiarMesas()
+  {
+    $mesas=self::where('id','>','0')->get();
+    if(!is_null($mesas) && count($mesas)>=1)
+    {
+      foreach ($mesas as $key => $mesa) {
+        $mesa->estado='libre';
+        $mesa->usos=0;
+        $mesa->save();
+      }
+    }
+  }
 }

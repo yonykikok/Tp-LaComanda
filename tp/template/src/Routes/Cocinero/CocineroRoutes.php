@@ -7,7 +7,7 @@ use Controllers\AuthController;
 use Controllers\CocinerosController;
 use Middleware\RoleMiddleware;
 use Middleware\AuthMiddleware;
-
+use Middleware\RegistroMiddleware;
 return function(App $app){
 $app->group('/Cocinero',function(){
     $this->get('/',CocinerosController::class.':PedidosPendientes');
@@ -16,5 +16,6 @@ $app->group('/Cocinero',function(){
     $this->post('/PrepararPostre',CocinerosController::class.':PrepararPostre');
     $this->post('/TerminarPedidoPostre',CocinerosController::class.':TerminarPedidoPostre');
 })->add(AuthMiddleware::class.':IsLoggedIn')
-->add(RoleMiddleware::class . ':esCocinero');
+->add(RoleMiddleware::class . ':esCocinero')
+->add(RegistroMiddleware::class . ':guardarOperacion');
 };

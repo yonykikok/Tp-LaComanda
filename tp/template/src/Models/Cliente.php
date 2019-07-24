@@ -14,5 +14,14 @@ class Cliente extends Model
     $cliente =  Cliente::select("id")->orderBy("id", "desc")->first();
     return is_null($cliente) ? 0 : $cliente->id;
   }
-  
+  public static function BorrarTodos()
+  {
+    $pedidos=self::where('id','>','0')->get();
+    if(!is_null($pedidos) && count($pedidos)>=1)
+    {
+      foreach ($pedidos as $key => $pedido) {
+        $pedido->delete();
+      }
+    }
+  }
 }

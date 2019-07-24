@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Capsule\Manager as Capsule;
 class PedidoMozo extends Model
 {
-  protected $table = "pedidosMozo";
+  protected $table = "pedidosmozo";
   public $timestamps = false;
 
   public static function LastInsertId()
@@ -25,6 +25,16 @@ class PedidoMozo extends Model
           $pedido->estado=$estadoNuevo;
           $pedido->save();
         }
+      }
+    }
+  }
+  public static function BorrarTodos()
+  {
+    $pedidos=self::where('id','>','0')->get();
+    if(!is_null($pedidos) && count($pedidos)>=1)
+    {
+      foreach ($pedidos as $key => $pedido) {
+        $pedido->delete();
       }
     }
   }

@@ -24,7 +24,15 @@ class Trago extends Model
     }
     return $retorno;
   }
- 
+  public static function TragoVendidaMasMas($id,$cantidadVendida)
+  {
+    $trago=self::where('id',$id)->first();
+      if(!is_null($trago))
+    {
+      $trago->cantidadVendida=$trago->cantidadVendida+$cantidadVendida;
+      $trago->save();
+    }
+  }
   public static function ArmarPedido($listado,$numeroDeOrden)
   {
     $cantidades=array();
@@ -45,6 +53,7 @@ class Trago extends Model
               $trago->idTrago=$pedidos[$i];
               $trago->orden=$numeroDeOrden;  
             $trago->estado='pendiente';
+            self::TragoVendidaMasMas($trago->idTrago,$trago->cantidad);
             $trago->save();
           }
           else{
@@ -62,7 +71,8 @@ class Trago extends Model
           $trago->idTrago=$listado['id'];
           $trago->orden=$numeroDeOrden;  
           $trago->estado='pendiente';
-          $trago->save();
+            self::TragoVendidaMasMas($trago->idTrago,$trago->cantidad);
+            $trago->save();
         }
         else
         {
@@ -77,7 +87,39 @@ class Trago extends Model
         $trago->idTrago=1000;
         $trago->orden=$numeroDeOrden;  
         $trago->estado='pendiente';
-        $trago->save();
+            self::TragoVendidaMasMas($trago->idTrago,$trago->cantidad);
+            $trago->save();
       }
+  }
+  public static function DescontarVendidas($orden)
+  {
+    $pedido=PedidoTrago::where('orden',$orden)->first();
+    if(!is_null($pedido))
+    {
+      $menu=self::where('id',$pedido->idTrago)->first();
+      if(!is_null($menu))
+      {
+        $menu->cantidadVendida=$menu->cantidadVendida-$pedido->cantidad;
+        $menu->save();
+      }else
+      {
+        echo 'no se encontro el trago<br>';
+      }
+    }
+    else
+      {
+        echo 'no se encontro el pedido en tragos<br>';
+      }
+  }
+  public static function LimpiarVendidos()
+  {
+    $menus=self::where('id','>','0')->get();
+    if(!is_null($menus) && count($menus)>=1)
+    {
+      foreach ($menus as $key => $menu) {
+        $menu->cantidadVendida=0;
+        $menu->save();
+      }
+    }
   }
   }
